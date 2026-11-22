@@ -1,0 +1,290 @@
+@import "tailwindcss";
+
+/* ─── MedClarify — Clinical Healthcare Green Theme ────────────────────── */
+
+:root {
+  /* Default: Medical Dark Theme */
+  --primary:        #10b981; /* Emerald 500 */
+  --primary-hover:  #059669; /* Emerald 600 */
+  --primary-glow:   rgba(16, 185, 129, 0.28);
+  --primary-subtle: #064e3b;
+  --primary-text:   #ecfdf5;
+
+  --bg-page:        #06120e; /* Deep clinical forest/slate */
+  --bg-card:        #0d1e17; /* Elevated card */
+  --bg-card-hover:  #132a20;
+  --bg-inner:       #091712; /* Inner wells / dropzone */
+  --border-subtle:  #153426;
+  --border-mid:     #1e4635;
+  --border-hover:   #2d634c;
+
+  --text-main:      #f0fdf4; /* Crisp mint white */
+  --text-sub:       #a7f3d0; /* Soft mint */
+  --text-muted:     #6ee7b7; /* Dim mint */
+  --text-dim:       #3b8266;
+
+  --accent-green:   #34d399;
+  --accent-amber:   #fbbf24;
+  --accent-rose:    #f87171;
+
+  /* Aliases for backwards compatibility */
+  --coral:          var(--primary);
+  --coral-dim:      var(--primary-hover);
+  --bg-base:        var(--bg-page);
+}
+
+/* ── Light Mode (Clean White Medical Interface) ─────────────────────────── */
+html.light {
+  --primary:        #059669; /* Emerald 600 */
+  --primary-hover:  #047857; /* Emerald 700 */
+  --primary-glow:   rgba(5, 150, 105, 0.22);
+  --primary-subtle: #ecfdf5;
+  --primary-text:   #064e3b;
+
+  --bg-page:        #f8fafc; /* Crisp clean white/slate */
+  --bg-card:        #ffffff; /* Pure white card */
+  --bg-card-hover:  #f1f5f9;
+  --bg-inner:       #f8fafc; /* Soft clinical slate */
+  --border-subtle:  #e2e8f0;
+  --border-mid:     #cbd5e1;
+  --border-hover:   #94a3b8;
+
+  --text-main:      #0f172a; /* Slate 900 */
+  --text-sub:       #334155; /* Slate 700 */
+  --text-muted:     #64748b; /* Slate 500 */
+  --text-dim:       #94a3b8;
+
+  --accent-green:   #059669;
+  --accent-amber:   #d97706;
+  --accent-rose:    #e11d48;
+
+  --coral:          var(--primary);
+  --coral-dim:      var(--primary-hover);
+  --bg-base:        var(--bg-page);
+}
+
+/* ── Base Reset ─────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  min-height: 100dvh;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* ── Noise grain for texture depth (Dark mode only) ─────────────────────── */
+html:not(.light) body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.35;
+}
+
+/* ── Fonts ──────────────────────────────────────────────────────────────── */
+.font-serif-title {
+  font-family: var(--font-serif, "Playfair Display", Georgia, serif);
+}
+
+/* ── Medical Emerald Glows ──────────────────────────────────────────────── */
+.glow-medical, .glow-coral {
+  box-shadow: 0 0 20px var(--primary-glow),
+              0 0 45px rgba(16, 185, 129, 0.08);
+}
+
+.glow-medical-btn, .glow-coral-btn {
+  box-shadow: 0 4px 20px var(--primary-glow),
+              0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.glow-medical-btn:hover, .glow-coral-btn:hover {
+  box-shadow: 0 6px 28px rgba(16, 185, 129, 0.45),
+              0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+.glow-medical-btn:active, .glow-coral-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Card Styles ────────────────────────────────────────────────────────── */
+.card-base {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.card-base:hover {
+  border-color: var(--border-mid);
+}
+
+html.light .card-base {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+}
+html.light .card-base:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+}
+
+.upload-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── Ambient Hero Glow ──────────────────────────────────────────────────── */
+.hero-glow {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 700px;
+  height: 480px;
+  background: radial-gradient(ellipse at center top,
+    var(--primary-glow) 0%,
+    rgba(16, 185, 129, 0.04) 45%,
+    transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Divider ────────────────────────────────────────────────────────────── */
+.divider-medical, .divider-coral {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--primary), transparent);
+  opacity: 0.5;
+}
+
+/* ── Dot Grid Background ────────────────────────────────────────────────── */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(16, 185, 129, 0.12) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+html.light .dot-grid {
+  background-image: radial-gradient(circle, rgba(5, 150, 105, 0.08) 1px, transparent 1px);
+}
+
+/* ── High Contrast Mode (Legacy toggle / accessibility) ─────────────────── */
+html.high-contrast body {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+html.high-contrast body::before { display: none; }
+html.high-contrast * { border-color: #facc15 !important; }
+html.high-contrast .card-base,
+html.high-contrast .upload-card { background-color: #0a0a0a !important; }
+html.high-contrast button:not([disabled]) { outline: 2px solid #facc15; }
+
+/* ── Custom Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-page); }
+::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+/* ── Focus Rings ────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* ── SR-only ────────────────────────────────────────────────────────────── */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Audio waveform animation ───────────────────────────────────────────── */
+@keyframes audioPulse {
+  0%, 100% { height: 4px; }
+  50%       { height: 16px; }
+}
+.audio-bar {
+  display: inline-block;
+  width: 2.5px;
+  background-color: currentColor;
+  border-radius: 9999px;
+  animation: audioPulse 1.1s ease-in-out infinite;
+  vertical-align: middle;
+}
+.audio-bar:nth-child(1) { animation-delay: 0s; }
+.audio-bar:nth-child(2) { animation-delay: 0.2s; }
+.audio-bar:nth-child(3) { animation-delay: 0.1s; }
+
+/* ── Entrance animations ────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-fade-up-delay-1 {
+  opacity: 0;
+  animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+}
+.animate-fade-up-delay-2 {
+  opacity: 0;
+  animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* ── Shimmer progress ───────────────────────────────────────────────────── */
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position: 400px 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, #091712 25%, #133024 50%, #091712 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite;
+}
+html.light .shimmer {
+  background: linear-gradient(90deg, #e2e8f0 25%, #cbd5e1 50%, #e2e8f0 75%);
+  background-size: 800px 100%;
+}
+
+/* ── Status Pip Indicator ───────────────────────────────────────────────── */
+.status-pip {
+  width: 8px; height: 8px;
+  border-radius: 9999px;
+  background-color: var(--primary);
+  box-shadow: 0 0 6px var(--primary), 0 0 12px var(--primary-glow);
+  animation: pulse 2s infinite;
+}
+
+/* ── Print ──────────────────────────────────────────────────────────────── */
+@media print {
+  nav, footer, .no-print, button, input { display: none !important; }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 12pt !important;
+  }
+  body::before { display: none; }
+  .card-base, .upload-card {
+    background: #ffffff !important;
+    border: 1px solid #cccccc !important;
+    color: #000000 !important;
+  }
+}
