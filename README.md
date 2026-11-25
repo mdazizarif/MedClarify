@@ -1,245 +1,310 @@
 # MedClarify ⚕️
 
-> **AI-Powered Vernacular Prescription & Lab Report Translator**  
-> Helping patients and caregivers decode handwritten prescriptions and complex blood test reports into plain, easy-to-understand language (English & Hindi) with interactive voice narration.
+> **AI-Powered Vernacular Prescription & Lab Report Translator**
+> Helping patients decode handwritten prescriptions and dense lab reports into plain language (English & Hindi) with voice narration.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
-[![Google Gemini API](https://img.shields.io/badge/Google_Gemini-3.5_Flash-4285F4?logo=google)](https://ai.google.dev/)
+[![Google Gemini](https://img.shields.io/badge/Google_Gemini-3.5_Flash-4285F4?logo=google)](https://ai.google.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-Modern_UI-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
-[![Vitest](https://img.shields.io/badge/Tests-92_Passed-6E9F18?logo=vitest)](https://vitest.dev/)
-[![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA-emerald)](https://www.w3.org/WAI/WCAG21/quickref/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.3-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
+[![Tests](https://img.shields.io/badge/Tests-92_Passed-6E9F18?logo=vitest)](https://vitest.dev/)
+[![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG_2.1_AA-059669)](https://www.w3.org/WAI/WCAG21/quickref/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## 🩺 The Real-World Problem
+## 1. Chosen Vertical
 
-Millions of patients leave clinics and diagnostic labs unable to decipher their medical papers:
-- **Handwritten Doctor Prescriptions**: Unclear handwriting, abbreviated instructions (`OD`, `BD`, `TDS`, `HS`, `AC`, `PC`), and unfamiliar brand vs. generic names often lead to incorrect dosages, missed medicines, or accidental drug interactions.
-- **Complex Lab Reports**: Diagnostic sheets (e.g., Complete Blood Count, Lipid Profiles, Metabolic Panels) list clinical acronyms and numeric reference ranges with zero plain-language explanation of what an out-of-range value means.
-- **Vernacular Barrier**: The vast majority of healthcare documents in India are issued in English, creating a steep language barrier for Hindi-speaking patients and elderly family members.
+**Healthcare Accessibility & AI-Assisted Patient Education**
 
-**MedClarify** resolves this by pairing **Google Gemini Multimodal AI** with **vernacular text-to-speech** and **client-side privacy protection** to deliver plain-language clinical insights anyone can understand.
+MedClarify targets a critical gap in healthcare accessibility: millions of patients in India and other multilingual regions receive medical documents — handwritten prescriptions and diagnostic lab reports — that they cannot read or understand. The chosen vertical is **vernacular healthcare translation using multimodal AI**, serving patients, elderly individuals, and caregivers who face:
+
+- Language barriers (documents in English, patients speaking Hindi or other regional languages)
+- Literacy barriers (cryptic medical shorthand, clinical abbreviations)
+- Accessibility barriers (low vision, elderly patients who benefit from audio narration)
+
+The solution is specifically designed to empower patients to understand their own healthcare without depending entirely on a doctor's verbal explanation.
 
 ---
 
-## ✨ Key Capabilities
+## 2. Problem Statement
 
-| Capability | Description |
+**The Real-World Problem:** Millions of patients walk out of clinics unable to read handwritten prescriptions or understand dense blood test reports, leading to missed doses, anxiety, or accidental drug interactions.
+
+Specifically, medical documents often contain:
+
+1. **Handwritten Doctor Prescriptions:** Unclear handwriting and cryptic clinical shorthand (`OD` = once daily, `BD` = twice daily, `TDS` = three times daily, `HS` = at bedtime, `AC` = before meals, `PC` = after meals) that patients cannot safely follow.
+2. **Dense Lab Reports:** Diagnostic sheets list biomarker acronyms (Hb, WBC, RBC, TSH, ALT) and numeric reference ranges with zero plain-language explanation of what an out-of-range value means for the patient's health.
+3. **Language & Accessibility Barriers:** The vast majority of prescriptions and lab reports in India are written in English, creating a steep barrier for Hindi-speaking patients and elderly family members who need help managing medications.
+
+**Impact of the Problem:**
+- Missed or incorrect doses due to misread prescriptions
+- Patient anxiety from unexplained "abnormal" lab values
+- Accidental drug interactions from misunderstood schedules
+- Elderly and low-vision patients unable to self-manage their healthcare
+
+---
+
+## 3. Approach and Logic
+
+MedClarify uses a layered, privacy-first AI pipeline:
+
+### 3.1 Client-Side Privacy Redaction (Before Any API Call)
+Before any document data is sent to the backend, a client-side PII redactor (`src/lib/piiRedactor.ts`) automatically strips:
+- Indian mobile numbers (10-digit, with/without +91 prefix)
+- Email addresses (RFC 5321 pattern)
+- Aadhaar numbers (12-digit UID, spaced or unspaced)
+- PAN card numbers (5 uppercase letters + 4 digits + 1 letter)
+- Indian passport numbers
+- Generic long numeric ID strings (8+ digits)
+
+This ensures patient identity information never reaches the AI model, addressing data privacy at the source.
+
+### 3.2 Multimodal AI Analysis (Google Gemini)
+The document image or PDF is sent to Google Gemini's multimodal API (`gemini-3.5-flash`) with:
+- A `responseSchema` enforcing strict JSON output structure — no prompt engineering tricks or regex parsing
+- `temperature: 0.1` for deterministic, medically accurate responses
+- A system prompt instructing the model to respond at a Class 6 reading level in both English and Hindi
+- Automatic model fallback chain: `gemini-3.5-flash` → `gemini-3.1-flash-lite` → `gemini-3.8-flash` → `gemini-3.7-flash` with 500ms delay between attempts
+
+### 3.3 Medical Logic Layer (Deterministic Post-Processing)
+Returned data is validated and enriched by `src/lib/medicalLogic.ts`:
+- **Biomarker severity classification:** Parses reference ranges (`13.5 – 17.5`, `> 40`, `< 100`) and classifies each value as `normal`, `borderline` (within 15% outside range), or `critical` (beyond 15% threshold)
+- **Daily schedule grouping:** Maps medication time slots (`Morning`, `Afternoon`, `Evening`, `Night`) from free-text frequency strings (`OD`, `BD`, `TDS`, `HS`)
+
+### 3.4 Vernacular Voice Narration (Hybrid TTS Engine)
+A key accessibility innovation is the hybrid audio engine (`src/lib/speechSynthesis.ts`):
+- **For Hindi:** Routes audio through the server-side `/api/tts` endpoint which streams native Hindi audio — this solves the critical problem where Windows English TTS voices silently skip Devanagari characters, producing only partial output like `"3 amoxicillin 5 5 "`
+- **For English:** Uses native `SpeechSynthesis` Web API
+- Sentence-level chunking on Hindi danda (`।`) and punctuation boundaries prevents Chromium's 15-second TTS cutoff bug
+
+### 3.5 Smart Caching
+Result caching using SHA-256 file hash + `sessionStorage` eliminates duplicate API calls for the same document, improving efficiency and reducing cost.
+
+---
+
+## 4. How the Solution Works
+
+### Step-by-Step Flow
+
+```
+User uploads prescription photo or lab report PDF
+            │
+            ▼
+Client: validateFile() → check MIME type (JPEG/PNG/WEBP/PDF) + max 5MB
+            │
+            ▼
+Client: computeFileHash() → check sessionStorage cache
+            │ (cache hit? → skip API, render instantly)
+            ▼
+Client: compressImage() → HTML5 Canvas resize (max 1280px, 0.8 quality)
+            │
+            ▼
+Client: redactPII() → strip Aadhaar, PAN, phone, email from any text context
+            │
+            ▼
+Server /api/analyze: re-validate MIME + size → call Gemini multimodal API
+            │
+            ▼
+Gemini AI: analyze image/PDF → return structured JSON (medications, biomarkers, summary)
+            │
+            ▼
+Server: post-process PII redaction on response text → return AnalysisResult
+            │
+            ▼
+Client: cache result in sessionStorage → render ReportResults component
+            │
+            ├── Plain-language summary (English + Hindi)
+            ├── Daily dosage routine (Morning / Afternoon / Evening / Night)
+            ├── Biomarker grid (Normal / Borderline / Attention Needed)
+            └── Voice narration button ("Listen" / "सुनें") → /api/tts audio stream
+```
+
+### Key User Interactions
+
+| Action | What Happens |
 |---|---|
-| 📄 **Multimodal Upload** | Drag & drop medical photos (JPEG, PNG, WEBP) or multi-page PDF documents. |
-| 🤖 **Gemini Multimodal AI** | Analyzes prescriptions and lab reports using `gemini-3.5-flash` with strict JSON schema enforcement (`responseSchema`). |
-| 🌐 **Bilingual (English & Hindi)** | One-click toggle between English and Hindi across the entire interface, medical summaries, and dosage instructions. |
-| 🔊 **Voice Read-Aloud ("सुनें / Listen")** | Audio narration powered by a hybrid engine (`/api/tts` streaming for fluent Hindi pronunciation + Web Speech API for English). |
-| 💊 **Daily Dosage Routine** | Automatically organizes medicines into **Morning 🌅**, **Afternoon ☀️**, **Evening 🌆**, and **Night 🌙** time slots with food instructions (e.g., *after meals*). |
-| 🩸 **Biomarker Visualizer** | Color-coded flags for blood markers (**Normal** in green, **Borderline** in amber, **Attention Needed** in rose) with reference range indicators. |
-| 🔒 **Client-Side PII Redaction** | Strips patient names, phone numbers, emails, Aadhaar numbers, and PAN cards *before* any data reaches external AI models. |
-| 🌗 **Light / Dark Themes** | Calming medical emerald theme with accessible contrast and instant Dark/Light switching. |
-| 🔍 **Dynamic Text Scaling** | Accessibility controls with standard (`A`), large (`A+`), and extra-large (`A++`) font sizes for low-vision patients. |
-| 🧪 **Instant Demo Samples** | Test the full experience with one click (Doctor's Handwritten Prescription or CBC Blood Panel) without needing an API key. |
+| Upload a prescription image | Gemini extracts medications, dosage, frequency, purpose, food instructions |
+| Upload a lab report | Gemini extracts biomarker values, flags out-of-range results, explains implications |
+| Click "हिन्दी" | Entire UI, summaries, medication names, and biomarker explanations switch to Hindi |
+| Click "सुनें (Speak)" | Audio narration streams Hindi speech via `/api/tts` or uses native TTS for English |
+| Click "Light Mode" | UI switches to bright clinical white theme optimized for readability |
+| Click font size A / A+ / A++ | Base font scales to 100% / 114% / 128% for low-vision users |
+| Try Demo Sample | Instant sample prescription or lab report loads without uploading any file |
 
 ---
 
-## 🔒 Security & Privacy Guarantee
+## 5. Assumptions Made
 
-- **Zero Data Retention**: Documents and analyses are never persisted to a database or shared with third parties.
-- **PII Scrubbing**: Regex filters automatically sanitize Indian phone numbers, emails, 12-digit Aadhaar IDs, and 10-digit PAN cards on the client before calling the backend.
-- **Safe Key Management**: API keys are **never** committed to version control. The `.env.local` file is excluded in `.gitignore`.
+1. **Image Quality:** The solution assumes uploaded prescriptions/lab reports are reasonably legible (not completely blurred or rotated 180°). Gemini handles typical handwriting variations and partial occlusion but cannot recover from fundamentally unreadable scans.
+
+2. **Indian Healthcare Context:** PII redaction patterns are calibrated for Indian identifiers (Aadhaar, PAN, +91 phone numbers). International patterns (SSN, NHS number) are not included in the current version.
+
+3. **Hindi Language Scope:** The bilingual support covers Hindi (Devanagari script). Other Indian regional languages (Tamil, Telugu, Bengali, Marathi) are out of scope for this version.
+
+4. **API Key Availability:** The app requires a valid Google Gemini API key (free tier available at [Google AI Studio](https://aistudio.google.com/app/apikey)). The key is never committed to the repository; users configure it via terminal prompt (`npm run setup:key`) or the in-app modal.
+
+5. **Device Audio Support:** The Hindi voice narration streams from the server-side `/api/tts` endpoint using Google's TTS engine. An internet connection is required for Hindi audio. English narration uses the browser's built-in Web Speech API, which works offline.
+
+6. **No Medical Diagnosis:** MedClarify is an accessibility and education tool, not a clinical diagnostic system. The AI explanations are designed to help patients understand their existing prescriptions and lab results — not to replace a doctor's advice.
+
+7. **Session-Only Storage:** Analysis results are cached in `sessionStorage` (cleared when the browser tab closes) and never persisted to any server-side database.
 
 ---
 
-## 🚀 Quick Start Guide
+## 6. Google AI Integration
+
+### Google Gemini Multimodal API
+- **Package:** `@google/genai` v3.6.1
+- **Model:** `gemini-3.5-flash` (primary), with automatic fallback to `gemini-3.1-flash-lite`, `gemini-3.8-flash`, and `gemini-3.7-flash`
+- **Why Gemini:** The only publicly available AI model capable of reading messy handwritten prescriptions AND structured lab report layouts in a single multimodal inference call
+- **Structured Output:** `responseSchema` with `Type.OBJECT` enforces exact JSON — eliminates hallucinated formats and parsing failures
+- **Temperature:** `0.1` for consistent, deterministic medical outputs
+
+```typescript
+// Simplified schema used for structured Gemini output
+{
+  documentType: "prescription" | "lab_report" | "unknown",
+  summary: string,         // English plain-language explanation
+  summaryHindi: string,    // Hindi (Devanagari) translation
+  medications: [{
+    name, dosage, frequency, duration, purpose,
+    schedule: ["Morning" | "Afternoon" | "Evening" | "Night"],
+    interactions: string[], notes: string
+  }],
+  biomarkers: [{
+    name, value, unit, referenceRange,
+    severity: "normal" | "borderline" | "critical",
+    explanation, implication
+  }],
+  keyFindings: string[],
+  confidence: number       // 0.0 – 1.0
+}
+```
+
+---
+
+## 7. Quick Start Guide
 
 ### Prerequisites
-- **Node.js**: Version 18.x or higher (recommended: Node 20 or 22)
-- **Package Manager**: `npm` (comes with Node.js)
-- **Google Gemini API Key**: Free API key available at [Google AI Studio](https://aistudio.google.com/app/apikey)
+- Node.js 18+ ([download](https://nodejs.org/))
+- Free Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-### 1. Clone the Repository
+### Setup
 ```bash
-git clone https://github.com/your-username/MedClarify.git
+# 1. Clone the repository
+git clone https://github.com/mdazizarif/MedClarify.git
 cd MedClarify
-```
 
-### 2. Install Dependencies
-```bash
+# 2. Install dependencies
 npm install
-```
 
-### 3. Configure Your Gemini API Key
-
-MedClarify provides **three easy ways** to set up your API key:
-
-#### Option A: Interactive Terminal Setup (Recommended)
-Run the built-in terminal setup script:
-```bash
+# 3. Configure API key (interactive terminal prompt)
 npm run setup:key
-```
-Follow the terminal prompt to enter your key. It safely writes to `.env.local` (which is gitignored).
 
-#### Option B: Manual `.env.local` Setup
-Copy the example template and paste your key:
-```bash
-cp .env.example .env.local
-```
-Then open `.env.local` in your editor and update:
-```env
-GEMINI_API_KEY=your_actual_gemini_api_key_here
-GEMINI_MODEL=gemini-3.5-flash
-```
-
-#### Option C: In-App Navbar Setup
-You can also launch the app directly without creating a `.env.local` file:
-- Click the **"API Key"** button in the top navbar of the web application.
-- Paste your key directly in the modal (stored only in local browser memory).
-
-> **Note**: You can test the app immediately without any API key by clicking the **"Handwritten Rx"** or **"CBC Blood Panel"** sample cards on the homepage!
-
----
-
-### 4. Run the Development Server
-```bash
+# 4. Start the development server
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your web browser.
 
----
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### 5. Run the Test Suite
-MedClarify comes with a comprehensive Vitest test suite covering medical logic, PII redaction, API validation, and speech synthesis chunking:
+> **No API key yet?** Click either sample card ("Handwritten Rx" or "CBC Blood Panel") on the homepage to try the full experience instantly with no upload needed.
+
+### Available Commands
 ```bash
-npm test
-```
-*(All 92 unit tests will execute and pass)*
-
----
-
-### 6. Build for Production
-```bash
-npm run build
-npm start
+npm run dev          # Start development server (http://localhost:3000)
+npm run build        # Production build
+npm start            # Start production server
+npm test             # Run all 92 unit tests
+npm run setup:key    # Secure interactive API key setup
 ```
 
 ---
 
-## 🏗️ Project Architecture
+## 8. Project Structure
 
 ```
 MedClarify/
-├── .env.example               # Safe environment variable template for GitHub
-├── .gitignore                 # Enforces security; ignores secrets (.env.local)
-├── firebase.json              # Firebase Hosting deployment configuration
-├── next.config.ts             # Security headers, CSP & Turbopack configurations
-├── package.json               # Dependencies and custom scripts
-├── tsconfig.json              # Strict TypeScript settings
-├── vitest.config.ts           # Vitest configuration for unit & DOM testing
-│
+├── .env.example               # Safe template for environment variables
+├── .gitignore                 # Excludes .env.local and secrets from git
+├── next.config.ts             # Security headers (CSP, X-Frame-Options, etc.)
 ├── scripts/
-│   └── setup-key.mjs          # Interactive CLI prompt for configuring GEMINI_API_KEY
-│
+│   └── setup-key.mjs          # Interactive CLI for secure API key setup
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx         # Root application layout with Google Fonts
-│   │   ├── page.tsx           # Main workspace (Hero, Dropzone, Demos, Results)
-│   │   ├── globals.css        # Tailwind utility layers & accessibility styles
+│   │   ├── page.tsx           # Main page (upload, demo samples, results)
+│   │   ├── layout.tsx         # Root layout with metadata and fonts
+│   │   ├── globals.css        # Design tokens, Tailwind layers, themes
 │   │   └── api/
-│   │       ├── analyze/
-│   │       │   └── route.ts   # Secure backend handler invoking Gemini AI
-│   │       └── tts/
-│   │           └── route.ts   # Vernacular Hindi streaming audio route
-│   │
+│   │       ├── analyze/route.ts   # POST: Secure Gemini multimodal analysis
+│   │       └── tts/route.ts       # GET: Hindi audio streaming endpoint
 │   ├── components/
-│   │   ├── AccessibilityBar.tsx # Language (EN/HI), theme (Light/Dark), font scale
-│   │   ├── ApiKeyModal.tsx      # Secure in-browser Gemini API Key configuration
-│   │   ├── DemoSamples.tsx      # Instant sample cards (Rx & CBC blood panel)
-│   │   └── ReportResults.tsx    # Summary, Voice Speak CTA, Dosage Routine, Biomarkers
-│   │
+│   │   ├── AccessibilityBar.tsx   # Language, theme, font size controls
+│   │   ├── ApiKeyModal.tsx        # In-app API key configuration modal
+│   │   ├── DemoSamples.tsx        # Instant sample prescription/lab report
+│   │   └── ReportResults.tsx      # Summary, dosage routine, biomarker grid
 │   ├── lib/
-│   │   ├── gemini.ts            # Google GenAI SDK wrapper with responseSchema
-│   │   ├── medicalLogic.ts      # Clinical rules, biomarker ranges & schedule slotting
-│   │   ├── piiRedactor.ts       # Indian PII detection (Aadhaar, PAN, phone, email)
-│   │   ├── imageOptimizer.ts    # Client-side HTML5 Canvas compression
-│   │   └── speechSynthesis.ts   # Hybrid TTS player (Audio queue + Web Speech)
-│   │
+│   │   ├── gemini.ts              # Gemini SDK client + fallback model chain
+│   │   ├── medicalLogic.ts        # Biomarker classification + schedule slotting
+│   │   ├── piiRedactor.ts         # Indian PII scrubbing (Aadhaar, PAN, phone)
+│   │   ├── imageOptimizer.ts      # Canvas compression + file hash caching
+│   │   └── speechSynthesis.ts     # Hybrid TTS (audio queue + Web Speech API)
 │   └── types/
-│       └── medical.ts           # Type definitions for medications, biomarkers & API
-│
+│       └── medical.ts             # TypeScript interfaces for all data models
 └── tests/
-    ├── setup.ts                 # Vitest DOM environment setup
-    ├── apiValidation.test.ts    # Tests for file size, MIME types, and error states
-    ├── medicalLogic.test.ts     # Tests for biomarker severity and daily schedule slots
-    ├── piiRedactor.test.ts      # Tests for Aadhaar, PAN, phone, and email redaction
-    └── speechSynthesis.test.ts  # Tests for Hindi danda splitting and audio chunking
+    ├── apiValidation.test.ts      # 30 tests: file size, MIME, error states
+    ├── medicalLogic.test.ts       # 38 tests: severity classification, scheduling
+    ├── piiRedactor.test.ts        # 20 tests: Aadhaar, PAN, phone, email redaction
+    └── speechSynthesis.test.ts    # 4 tests: Hindi danda splitting, audio chunking
 ```
 
 ---
 
-## 🧠 Google Services Integration
+## 9. Security Design
 
-### 1. Google Gemini Multimodal API (`@google/genai`)
-- **Multimodal Understanding**: Inspects messy handwriting, printed clinic stamps, and multi-column lab charts in one forward pass.
-- **Deterministic Structured JSON**: Uses `responseSchema` with `Type.OBJECT` to guarantee strictly validated JSON conforming to the `AnalysisResult` TypeScript interface.
-- **Model Fallback Chain**: Defaults to `gemini-3.5-flash` with automatic fallback to `gemini-3.1-flash-lite`, `gemini-3.8-flash`, and `gemini-3.7-flash` with exponential backoff on demand spikes.
-
-### 2. Google Cloud Text-to-Speech / Streaming Audio
-- Provides crystal-clear native Hindi pronunciation for elderly patients and individuals with visual impairments or reading difficulties.
-- Automatically splits complex Devanagari sentences on Hindi danda (`।`) and punctuation boundaries to ensure fluent, continuous narration.
-
-### 3. Firebase Hosting Ready
-- Includes pre-configured `firebase.json` and `.firebaserc` files for single-command deployment to Firebase Hosting or Firebase App Hosting.
+| Concern | Mitigation |
+|---|---|
+| **API Key Exposure** | Key lives only in `.env.local` (gitignored); never sent to the client bundle |
+| **PII Leakage** | Automatic redaction of Aadhaar, PAN, phone, email at two layers: client and server |
+| **File Safety** | MIME type allowlist + 5 MB size limit enforced server-side before any AI call |
+| **Clickjacking** | `X-Frame-Options: DENY` header on all routes |
+| **MIME Sniffing** | `X-Content-Type-Options: nosniff` header |
+| **XSS** | Strict `Content-Security-Policy` header on every response |
+| **Data Retention** | Zero server-side storage; results cached only in client `sessionStorage` |
 
 ---
 
-## 🧪 Testing Summary
+## 10. Accessibility (WCAG 2.1 AA)
+
+- **Semantic HTML:** `<header>`, `<main>`, `<section>`, `<nav>`, `<article>`, `<footer>`
+- **ARIA Labels:** All interactive elements carry explicit `aria-label` attributes
+- **Live Regions:** `aria-live="polite"` for loading states; `aria-live="assertive"` for critical errors
+- **Keyboard Navigation:** Full tab-order and visible `focus-visible` rings throughout
+- **High Contrast / Dark Mode:** One-click Light/Dark toggle, persisted across renders
+- **Font Scaling:** Three levels (100% / 114% / 128%) for low-vision users
+- **Audio Narration:** Fluent Hindi and English read-aloud for elderly or low-literacy users
+- **Reduced Motion:** Respects `prefers-reduced-motion` media query
+
+---
+
+## 11. Test Coverage
 
 ```
- RUN  v4.1.12
- ✓ tests/apiValidation.test.ts    (30 tests)
- ✓ tests/speechSynthesis.test.ts  (4 tests)
- ✓ tests/piiRedactor.test.ts      (20 tests)
- ✓ tests/medicalLogic.test.ts     (38 tests)
+ ✓ tests/apiValidation.test.ts    (30 tests)  — file size, MIME, error handling
+ ✓ tests/speechSynthesis.test.ts   (4 tests)  — Hindi sentence splitting
+ ✓ tests/piiRedactor.test.ts      (20 tests)  — Aadhaar, PAN, phone, email redaction
+ ✓ tests/medicalLogic.test.ts     (38 tests)  — biomarker severity, schedule slotting
 
  Test Files  4 passed (4)
       Tests  92 passed (92)
 ```
 
-To run tests in watch mode:
-```bash
-npm run test:watch
-```
+---
+
+## 12. Medical Disclaimer
+
+> MedClarify is an educational and accessibility assistance tool designed to help patients understand their own medical documentation. It does **not** provide medical diagnosis, clinical judgment, or treatment recommendations. Always consult a qualified healthcare professional before changing any medication or health routine.
 
 ---
 
-## 🚢 Firebase Deployment
-
-### Deploy to Firebase Hosting:
-```bash
-# 1. Install Firebase CLI
-npm install -g firebase-tools
-
-# 2. Login to Google / Firebase
-firebase login
-
-# 3. Associate your project
-firebase use <your-firebase-project-id>
-
-# 4. Deploy
-firebase deploy
-```
-
----
-
-## 📜 Medical Disclaimer
-
-> **IMPORTANT**: MedClarify is an educational and accessibility assistance tool designed to help patients understand medical documentation. It does not provide medical diagnosis, clinical judgment, or treatment recommendations. Always consult a qualified healthcare professional before taking, stopping, or modifying any medication or health routine.
-
----
-
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
----
-
-*Crafted with clinical precision for accessible patient-first healthcare.*
+*Built with Next.js 16, Google Gemini Multimodal API, TypeScript, and Tailwind CSS.*
